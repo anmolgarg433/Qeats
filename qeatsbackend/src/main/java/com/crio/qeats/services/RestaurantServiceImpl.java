@@ -39,22 +39,29 @@ public class RestaurantServiceImpl implements RestaurantService {
   @Override
   public GetRestaurantsResponse findAllRestaurantsCloseBy(
       GetRestaurantsRequest getRestaurantsRequest, LocalTime currentTime) {
-        List<Restaurant> restaurant;
-        int h = currentTime.getHour();
-        int m = currentTime.getMinute();
-        if ((h >= 8 && h <= 9) || (h == 10 && m == 0) || (h == 13) || (h == 14 && m == 0) 
-            || (h >= 19 && h <= 20) || (h == 21 && m == 0)) {
-          restaurant = restaurantRepositoryService.findAllRestaurantsCloseBy(
-            getRestaurantsRequest.getLatitude(), getRestaurantsRequest.getLongitude(), 
-            currentTime, peakHoursServingRadiusInKms);
-        } else {
-          restaurant = restaurantRepositoryService.findAllRestaurantsCloseBy(
-          getRestaurantsRequest.getLatitude(), getRestaurantsRequest.getLongitude(), 
+        double latitude = getRestaurantsRequest.getLatitude();
+        double longitude = getRestaurantsRequest.getLongitude();
+        List<Restaurant> restaurants;
+        boolean check = ((currentTime.isAfter(LocalTime.of(7, 59, 59))
+        && currentTime.isBefore(LocalTime.of(10, 00, 01)))
+        || (currentTime.isAfter(LocalTime.of(12, 59, 59))
+            && currentTime.isBefore(LocalTime.of(14, 00, 01)))
+        || (currentTime.isAfter(LocalTime.of(18, 59, 59))
+            && currentTime.isBefore(LocalTime.of(21, 00, 01))));
+
+    if (check) {
+      restaurants = restaurantRepositoryService.findAllRestaurantsCloseBy(latitude, longitude,
+          currentTime, peakHoursServingRadiusInKms);
+    } else {
+      restaurants = restaurantRepositoryService.findAllRestaurantsCloseBy(latitude, longitude,
           currentTime, normalHoursServingRadiusInKms);
-        }
-        GetRestaurantsResponse response = new GetRestaurantsResponse(restaurant);
-        log.info(response);
-        return response;
+    }
+
+    if (restaurants == null) {
+      return new GetRestaurantsResponse(new ArrayList<>());
+    }
+
+    return new GetRestaurantsResponse(restaurants);
 
   }
 
